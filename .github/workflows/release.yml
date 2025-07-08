@@ -52,7 +52,7 @@ jobs:
           tar czvf p2ptransfer-${{ runner.os }}.tar.gz release/
 
       # 上传临时产物
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: p2ptransfer-${{ runner.os }}
           path: p2ptransfer-${{ runner.os }}.tar.gz
@@ -61,7 +61,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v44
         with:
           path: artifacts
 
