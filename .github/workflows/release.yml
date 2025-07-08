@@ -1,0 +1,75 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送v开头的tag时触发（如v1.0.0）
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-12]  # 同时运行Linux和macOS构建
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # macOS专属依赖安装
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install openssl ninja
+
+      # Linux专属依赖安装
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build openssl libssl-dev
+
+      # 解压libdatachannel（两个平台通用）
+      - name: Extract libdatachannel
+        run: |
+          cd deps/src/
+          tar -xjf libdatachannel-0.23.1.tar.bz2
+          cd ../../
+
+      # 编译项目
+      - name: Build Project
+        run: |
+          mkdir build && cd build
+          cmake -GNinja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          ninja -j4
+
+      # 准备发布文件
+      - name: Package binary
+        run: |
+          mkdir release
+          cp build/client/p2ptransfer release/p2ptransfer-${{ runner.os }}
+          strip release/p2ptransfer-${{ runner.os }}  # 可选：减小文件体积
+          tar czvf p2ptransfer-${{ runner.os }}.tar.gz release/
+
+      # 上传临时产物
+      - uses: actions/upload-artifact@v3
+        with:
+          name: p2ptransfer-${{ runner.os }}
+          path: p2ptransfer-${{ runner.os }}.tar.gz
+
+  create_release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      # 创建GitHub Release
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          files: |
+            artifacts/p2ptransfer-ubuntu-22.04/*
+            artifacts/p2ptransfer-macOS/*
