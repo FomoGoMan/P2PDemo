@@ -71,5 +71,5 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: "Release ${{ github.ref_name }}"
           files: |
-            artifacts/p2ptransfer-ubuntu-22.04/*
+            artifacts/p2ptransfer-Linux/*
             artifacts/p2ptransfer-macOS/*
